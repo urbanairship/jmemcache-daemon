@@ -3,7 +3,6 @@
 .idea/*
 .hg/*
 *.class
-
 # Package Files #
 *.jar
 *.war
