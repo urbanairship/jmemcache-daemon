@@ -38,7 +38,7 @@ public final class CommandMessage<CACHE_ELEMENT extends CacheElement> implements
     public int opaque;
     public boolean addKeyToResponse = false;
 
-    public int incrExpiry;
+    public long incrExpiry;
     public int incrAmount;
 
     private CommandMessage(Op op) {

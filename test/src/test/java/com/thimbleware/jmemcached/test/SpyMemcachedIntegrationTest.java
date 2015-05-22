@@ -1,12 +1,11 @@
 package com.thimbleware.jmemcached.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
@@ -14,9 +13,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import net.spy.memcached.*;
+import net.spy.memcached.transcoders.Transcoder;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,9 +50,24 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
 
         this.address = new InetSocketAddress("localhost", getPort());
         if (getProtocolMode() == ProtocolMode.BINARY)
-            _client = new MemcachedClient( new BinaryConnectionFactory(), Arrays.asList( address ) );
+            _client = new MemcachedClient( new BinaryConnectionFactoryWithTimeout(60000), Arrays.asList( address ) );
         else
             _client = new MemcachedClient( Arrays.asList( address ) );
+    }
+    
+    private class BinaryConnectionFactoryWithTimeout extends BinaryConnectionFactory {
+	
+	private long timeoutMs;
+	
+	public BinaryConnectionFactoryWithTimeout(long timeoutMs){
+	    super();
+	    this.timeoutMs = timeoutMs;
+	}
+	
+	@Override
+	public long getOperationTimeout(){
+	    return timeoutMs;
+	}
     }
 
     @After
@@ -174,7 +190,10 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
     public void testBulkGet() throws IOException, InterruptedException, ExecutionException, TimeoutException {
         ArrayList<String> allStrings = new ArrayList<String>();
         ArrayList<Future<Boolean>> futures = new ArrayList<Future<Boolean>>();
-        for (int i = 0; i < 500; i++) {
+        
+        final int NUM_BULK_KEYS = 5;
+        
+        for (int i = 0; i < NUM_BULK_KEYS; i++) {
             futures.add(_client.set("foo" + i, 360000, "bar" + i));
             allStrings.add("foo" + i);
         }
@@ -188,7 +207,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Map<String, Object>> future = _client.asyncGetBulk(allStrings);
         Map<String, Object> results = future.get();
 
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < NUM_BULK_KEYS; i++) {
             assertEquals("bar" + i, results.get("foo" + i));
         }
 
