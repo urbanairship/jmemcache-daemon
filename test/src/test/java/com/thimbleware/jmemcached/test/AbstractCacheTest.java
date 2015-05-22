@@ -47,12 +47,12 @@ public abstract class AbstractCacheTest {
     @Parameterized.Parameters
     public static Collection blockSizeValues() {
         return Arrays.asList(new Object[][] {
-                {CacheType.LOCAL_HASH, 1, ProtocolMode.TEXT },
+          //      {CacheType.LOCAL_HASH, 1, ProtocolMode.TEXT },
                 {CacheType.LOCAL_HASH, 1, ProtocolMode.BINARY },
-                {CacheType.BLOCK, 4, ProtocolMode.TEXT},
-                {CacheType.BLOCK, 4, ProtocolMode.BINARY},
-                {CacheType.MAPPED, 4, ProtocolMode.TEXT},
-                {CacheType.MAPPED, 4, ProtocolMode.BINARY }
+          //      {CacheType.BLOCK, 4, ProtocolMode.TEXT},
+          //      {CacheType.BLOCK, 4, ProtocolMode.BINARY},
+          //      {CacheType.MAPPED, 4, ProtocolMode.TEXT},
+          //      {CacheType.MAPPED, 4, ProtocolMode.BINARY }
         });
     }
 
@@ -67,7 +67,7 @@ public abstract class AbstractCacheTest {
         
         port = AvailablePortFinder.getNextAvailable();
         daemon.setAddr(new InetSocketAddress(port));
-        daemon.setVerbose(false);
+        daemon.setVerbose(true);
         daemon.start();
 
         cache = daemon.getCache();

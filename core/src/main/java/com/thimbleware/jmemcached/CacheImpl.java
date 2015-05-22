@@ -168,9 +168,10 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
             getMisses.incrementAndGet();
             return null;
         } else {
-            old.setExpire(expire);
             LocalCacheElement.IncrDecrResult result = old.add(mod);
-            return storage.replace(old.getKey(), old, result.replace) ? result.oldValue : null;
+            LocalCacheElement replacement = result.replace;
+            replacement.setExpire(expire);
+            return storage.replace(old.getKey(), old, replacement) ? result.oldValue : null;
         }
     }
 

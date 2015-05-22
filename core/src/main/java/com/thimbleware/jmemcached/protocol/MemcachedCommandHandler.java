@@ -17,9 +17,11 @@ package com.thimbleware.jmemcached.protocol;
 
 
 import com.thimbleware.jmemcached.Cache;
+import com.thimbleware.jmemcached.Cache.StoreResponse;
 import com.thimbleware.jmemcached.CacheElement;
 import com.thimbleware.jmemcached.Key;
 import com.thimbleware.jmemcached.protocol.exceptions.UnknownCommandException;
+
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.slf4j.Logger;
@@ -313,7 +315,7 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
         keys = command.keys.toArray(keys);
         CACHE_ELEMENT[] results = get(keys);
         
-        if(touch){
+        if(results.length > 0 && touch){
             touch(results, command.incrExpiry);
         }
         
@@ -326,12 +328,11 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
         keys = command.keys.toArray(keys);
         CACHE_ELEMENT[] results = get(keys);
         
-        if(touch){
-            touch(results, command.incrExpiry);
-        }
-        
         ResponseMessage<CACHE_ELEMENT> resp = new ResponseMessage<CACHE_ELEMENT>(command).withElements(results);
-        if (results[0] != null) {
+        if (results.length > 0 && results[0] != null) {
+            if(touch){
+                touch(results, command.incrExpiry);
+            }
             Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
         }
     }
@@ -351,7 +352,12 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
         keys = command.keys.toArray(keys);
         CACHE_ELEMENT[] results = get(keys);
         
-	touch(results, command.incrExpiry);
+        StoreResponse resp = StoreResponse.NOT_FOUND;
+        if(results.length > 0 && results[0] != null){
+            touch(results, command.incrExpiry);
+    	    resp = StoreResponse.STORED;
+        }
+        Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withResponse(resp), channel.getRemoteAddress());
     }
     
     // Intentionally take a long here even though this comes in as an int
