@@ -207,13 +207,18 @@ public class BasicCacheTest extends AbstractCacheTest {
         assertEquals(cache.set(element), Cache.StoreResponse.STORED);
 
         // increment
-        assertEquals("value correctly incremented", (Integer)2, cache.get_add(testKey, 1));
+        assertEquals("value correctly incremented", (Integer)2, cache.get_add(testKey, 1, NO_EXPIRE));
+        
+        // increment
+        assertEquals("value correctly incremented", (Integer)3, cache.get_add(testKey, 1, 5000000));
+        assertEquals("expiration correctly set", 500000, cache.get(testKey)[0].getExpire(), 5000000);
 
         // increment by more
-        assertEquals("value correctly incremented", (Integer)7, cache.get_add(testKey, 5));
-
+        assertEquals("value correctly incremented", (Integer)7, cache.get_add(testKey, 4, NO_EXPIRE));
+        assertEquals("expiration correctly set", 500000, cache.get(testKey)[0].getExpire(), NO_EXPIRE);
+        
         // decrement
-        assertEquals("value correctly decremented", (Integer)2, cache.get_add(testKey, -5));
+        assertEquals("value correctly decremented", (Integer)2, cache.get_add(testKey, -5, NO_EXPIRE));
     }
 
 

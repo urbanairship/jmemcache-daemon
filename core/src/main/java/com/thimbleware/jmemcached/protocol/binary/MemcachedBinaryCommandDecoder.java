@@ -57,6 +57,8 @@ public class MemcachedBinaryCommandDecoder extends FrameDecoder {
         Touch(0x1C, Op.NOOP, false),
         GAT(0x1D, Op.NOOP, false),
         GATQ(0x1E, Op.NOOP, true),
+        
+        /*
         SASLListMechs(0x20, Op.NOOP, false),
         SASLAuth(0x21, Op.NOOP, false),
         SASLStep(0x22, Op.NOOP, false),
@@ -84,6 +86,7 @@ public class MemcachedBinaryCommandDecoder extends FrameDecoder {
         TAPVBucketSet(0x45, Op.NOOP, false),
         TAPCheckpointStart(0x46, Op.NOOP, false),
         TAPCheckpointEnd(0x47, Op.NOOP, false),
+        */
         ;
 
         public byte code;
@@ -199,6 +202,10 @@ public class MemcachedBinaryCommandDecoder extends FrameDecoder {
 
                 cmdMessage.incrAmount = (int) amount;
                 cmdMessage.incrExpiry = (int) expiration;
+            } else if (cmdType == Op.GAT || cmdType == Op.GATQ || cmdType == Op.TOUCH){
+        	long expiration = extrasBuffer.readUnsignedInt();
+        	
+        	cmdMessage.incrExpiry = (int) expiration;
             }
         }
 

@@ -159,10 +159,10 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
         switch (cmd) {
             case GET:
             case GETS:
-                handleGets(channelHandlerContext, command, channel);
+                handleGets(channelHandlerContext, command, channel, false);
                 break;
             case GETQ:
-                handleGetq(channelHandlerContext, command, channel);
+                handleGetq(channelHandlerContext, command, channel, false);
                 break;
             case GETKQ:
                 handleGetkq(channelHandlerContext, command, channel);
@@ -212,6 +212,15 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
             case NOOP:
                 handleNoOp(channelHandlerContext, command);
                 break;
+            case GAT:
+        	handleGets(channelHandlerContext, command, channel, true);
+        	break;
+            case GATQ:
+        	handleGetq(channelHandlerContext, command, channel, true);
+        	break;
+            case TOUCH:
+        	handleTouch(channelHandlerContext, command, channel);
+        	break;
             default:
                  throw new UnknownCommandException("unknown command");
         }
@@ -254,12 +263,12 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
     }
 
     protected void handleDecr(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
-        Integer incrDecrResp = cache.get_add(command.keys.get(0), -1 * command.incrAmount);
+        Integer incrDecrResp = cache.get_add(command.keys.get(0), -1 * command.incrAmount, command.incrExpiry);
         Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withIncrDecrResponse(incrDecrResp), channel.getRemoteAddress());
     }
 
     protected void handleIncr(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
-        Integer incrDecrResp = cache.get_add(command.keys.get(0), command.incrAmount); // TODO support default value and expiry!!
+        Integer incrDecrResp = cache.get_add(command.keys.get(0), command.incrAmount, command.incrExpiry); // TODO support default value 
         Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withIncrDecrResponse(incrDecrResp), channel.getRemoteAddress());
     }
 
@@ -299,18 +308,28 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
         Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withResponse(ret), channel.getRemoteAddress());
     }
 
-    protected void handleGets(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
+    protected void handleGets(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel, boolean touch) {
         Key[] keys = new Key[command.keys.size()];
         keys = command.keys.toArray(keys);
         CACHE_ELEMENT[] results = get(keys);
+        
+        if(touch){
+            touch(results, command.incrExpiry);
+        }
+        
         ResponseMessage<CACHE_ELEMENT> resp = new ResponseMessage<CACHE_ELEMENT>(command).withElements(results);
         Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
     }
 
-    protected void handleGetq(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
+    protected void handleGetq(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel, boolean touch) {
         Key[] keys = new Key[command.keys.size()];
         keys = command.keys.toArray(keys);
         CACHE_ELEMENT[] results = get(keys);
+        
+        if(touch){
+            touch(results, command.incrExpiry);
+        }
+        
         ResponseMessage<CACHE_ELEMENT> resp = new ResponseMessage<CACHE_ELEMENT>(command).withElements(results);
         if (results[0] != null) {
             Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
@@ -325,6 +344,20 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
         if (results[0] != null) {
             Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
         }
+    }
+    
+    protected void handleTouch(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel){
+	Key[] keys = new Key[command.keys.size()];
+        keys = command.keys.toArray(keys);
+        CACHE_ELEMENT[] results = get(keys);
+        
+	touch(results, command.incrExpiry);
+    }
+    
+    // Intentionally take a long here even though this comes in as an int
+    // because the value is unsigned 4byte, but int is signed
+    private void touch(CACHE_ELEMENT[] results, long incrExpiry){
+	results[0].setExpire(incrExpiry);
     }
 
     /**

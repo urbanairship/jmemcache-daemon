@@ -162,12 +162,13 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
     /**
      * @inheritDoc
      */
-    public Integer get_add(Key key, int mod) {
+    public Integer get_add(Key key, int mod, long expire) {
         LocalCacheElement old = storage.get(key);
         if (old == null || isBlocked(old) || isExpired(old)) {
             getMisses.incrementAndGet();
             return null;
         } else {
+            old.setExpire(expire);
             LocalCacheElement.IncrDecrResult result = old.add(mod);
             return storage.replace(old.getKey(), old, result.replace) ? result.oldValue : null;
         }
