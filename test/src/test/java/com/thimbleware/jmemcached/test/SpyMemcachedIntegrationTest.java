@@ -124,6 +124,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Boolean> future = _client.set(KEY, TWO_WEEKS, bigObject);
         assertTrue(future.get());
         final Map<String, Double> map = (Map<String, Double>)_client.get(KEY);
+        assertNotNull(map);
         for (String key : map.keySet()) {
             Integer kint = Integer.valueOf(key);
             Double val = map.get(key);
@@ -136,6 +137,8 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Boolean> future = _client.set("foo", 32000, 123);
         assertTrue(future.get());
         CASValue<Object> casValue = _client.gets("foo");
+        
+        assertNotNull(casValue);
         assertEquals( 123, casValue.getValue());
 
         CASResponse cr = _client.cas("foo", casValue.getCas(), 456);
@@ -152,6 +155,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Boolean> future = _client.add("foo", 32000, 123);
         assertTrue(future.get());
         CASValue<Object> casValue = _client.gets("foo"); // should not produce an error
+        assertNotNull(casValue);
         assertEquals( 123, casValue.getValue());
     }
 

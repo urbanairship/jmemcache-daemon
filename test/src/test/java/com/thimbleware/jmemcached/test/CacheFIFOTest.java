@@ -35,7 +35,7 @@ public class CacheFIFOTest extends AbstractCacheTest {
             // verify that the size of the cache is correct
             int maximum = i < MAX_SIZE ? i + 1 : MAX_SIZE;
 
-            assertEquals("correct number of items stored", maximum, daemon.getCache().getCurrentItems());
+            assertEquals("correct number of items stored (index " + i + ")", maximum, daemon.getCache().getCurrentItems());
         }
 
         // verify that the size of the cache is correct

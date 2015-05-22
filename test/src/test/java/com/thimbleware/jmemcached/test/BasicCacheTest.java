@@ -70,7 +70,7 @@ public class BasicCacheTest extends AbstractCacheTest {
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
         // put in cache
-        assertEquals(cache.add(element), Cache.StoreResponse.STORED);
+        assertEquals(Cache.StoreResponse.STORED, cache.add(element));
 
         // get result
         CacheElement result = cache.get(testKey)[0];
@@ -87,7 +87,7 @@ public class BasicCacheTest extends AbstractCacheTest {
 
         // now replace
         testvalue = "54321";
-        element = new LocalCacheElement(testKey, 0, Now(), 0L);
+        element = new LocalCacheElement(testKey, 0, NO_EXPIRE, 0L);
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
         // put in cache
@@ -168,10 +168,10 @@ public class BasicCacheTest extends AbstractCacheTest {
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
         // put in cache
-        assertEquals(cache.add(element), Cache.StoreResponse.STORED);
+        assertEquals(Cache.StoreResponse.STORED, cache.add(element));
 
         // put in cache again and fail
-        assertEquals(cache.add(element), Cache.StoreResponse.NOT_STORED);
+        assertEquals(Cache.StoreResponse.EXISTS, cache.add(element));
 
         assertEquals("cache has only 1 element", 1, cache.getCurrentItems());
     }
