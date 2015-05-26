@@ -313,11 +313,7 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
     protected void handleGets(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel, boolean touch) {
         Key[] keys = new Key[command.keys.size()];
         keys = command.keys.toArray(keys);
-        CACHE_ELEMENT[] results = get(keys);
-        
-        if(results.length > 0 && touch){
-            touch(results, command.incrExpiry);
-        }
+        CACHE_ELEMENT[] results = get(touch, command.incrExpiry, keys);
         
         ResponseMessage<CACHE_ELEMENT> resp = new ResponseMessage<CACHE_ELEMENT>(command).withElements(results);
         Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
@@ -326,13 +322,10 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
     protected void handleGetq(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel, boolean touch) {
         Key[] keys = new Key[command.keys.size()];
         keys = command.keys.toArray(keys);
-        CACHE_ELEMENT[] results = get(keys);
+        CACHE_ELEMENT[] results = get(touch, command.incrExpiry, keys);
         
         ResponseMessage<CACHE_ELEMENT> resp = new ResponseMessage<CACHE_ELEMENT>(command).withElements(results);
         if (results.length > 0 && results[0] != null) {
-            if(touch){
-                touch(results, command.incrExpiry);
-            }
             Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
         }
     }
@@ -340,7 +333,7 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
     protected void handleGetkq(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
         Key[] keys = new Key[command.keys.size()];
         keys = command.keys.toArray(keys);
-        CACHE_ELEMENT[] results = get(keys);
+        CACHE_ELEMENT[] results = get(false, 0, keys);
         ResponseMessage<CACHE_ELEMENT> resp = new ResponseMessage<CACHE_ELEMENT>(command).withElements(results);
         if (results[0] != null) {
             Channels.fireMessageReceived(channelHandlerContext, resp, channel.getRemoteAddress());
@@ -350,21 +343,21 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
     protected void handleTouch(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel){
 	Key[] keys = new Key[command.keys.size()];
         keys = command.keys.toArray(keys);
-        CACHE_ELEMENT[] results = get(keys);
+        StoreResponse resp = cache.touch(keys, command.incrExpiry);
         
-        StoreResponse resp = StoreResponse.NOT_FOUND;
-        if(results.length > 0 && results[0] != null){
-            touch(results, command.incrExpiry);
-    	    resp = StoreResponse.STORED;
-        }
+//        StoreResponse resp = StoreResponse.NOT_FOUND;
+//        if(results.length > 0 && results[0] != null){
+//            touch(results, command.incrExpiry);
+//    	    resp = StoreResponse.STORED;
+//        }
         Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withResponse(resp), channel.getRemoteAddress());
     }
     
     // Intentionally take a long here even though this comes in as an int
     // because the value is unsigned 4byte, but int is signed
-    private void touch(CACHE_ELEMENT[] results, long incrExpiry){
-	results[0].setExpire(incrExpiry);
-    }
+    //private void touch(CACHE_ELEMENT[] results, long incrExpiry){
+//	results[0].setExpire(incrExpiry);
+//    }
 
     /**
      * Get an element from the cache
@@ -372,8 +365,8 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
      * @param keys the key for the element to lookup
      * @return the element, or 'null' in case of cache miss.
      */
-    private CACHE_ELEMENT[] get(Key... keys) {
-        return cache.get(keys);
+    private CACHE_ELEMENT[] get(boolean touch, long expire, Key... keys) {
+        return touch ? cache.gat(expire, keys) : cache.get(keys);
     }
 
 

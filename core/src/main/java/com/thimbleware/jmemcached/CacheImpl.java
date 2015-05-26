@@ -213,9 +213,56 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
         getHits.addAndGet(hits);
 
         return elements;
-
     }
+    
+    public LocalCacheElement[] gat(long expire, Key[] keys) {
+        getCmds.incrementAndGet();//updates stats
 
+        LocalCacheElement[] elements = new LocalCacheElement[keys.length];
+        int x = 0;
+        int hits = 0;
+        int misses = 0;
+        for (Key key : keys) {
+            LocalCacheElement e = storage.get(key);
+            if (e == null || isExpired(e) || e.isBlocked()) {
+                misses++;
+
+                elements[x] = null;
+            } else {
+                hits++;
+
+                e.setExpire(expire);
+                storage.put(key, e);
+                elements[x] = e;
+            }
+            x++;
+
+        }
+        getMisses.addAndGet(misses);
+        getHits.addAndGet(hits);
+
+        return elements;
+    }
+    
+    public StoreResponse touch(Key[] keys,
+	    long expiry) {
+	StoreResponse response = StoreResponse.NOT_FOUND;
+	
+	int x = 0;
+        for (Key key : keys) {
+            LocalCacheElement e = storage.get(key);
+            if (e == null || isExpired(e) || e.isBlocked()) {
+
+            } else {
+        	e.setExpire(expiry);
+                storage.put(key, e);
+                response = StoreResponse.STORED;
+            }
+            x++;
+        }
+        return response;
+    }
+    
     /**
      * @inheritDoc
      */
@@ -305,4 +352,5 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
                 return element.getKey().toString().compareTo(((DelayedMCElement) delayed).element.getKey().toString());
         }
     }
+
 }
