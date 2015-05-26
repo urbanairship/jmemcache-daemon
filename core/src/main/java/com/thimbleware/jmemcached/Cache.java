@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.Map;
 
+import com.thimbleware.jmemcached.Cache.StoreResponse;
+
 /**
  */
 public interface Cache<CACHE_ELEMENT extends CacheElement> {
@@ -85,7 +87,7 @@ public interface Cache<CACHE_ELEMENT extends CacheElement> {
      * @param mod the amount to add to the value
      * @return the message response
      */
-    Integer get_add(Key key, int mod);
+    Integer get_add(Key key, int mod, long expire);
 
     /**
      * Get element(s) from the cache
@@ -161,5 +163,21 @@ public interface Cache<CACHE_ELEMENT extends CacheElement> {
      * (such as delete queues, etc.)
      */
     void asyncEventPing();
+
+    /**
+     * Increase the expiry on a given key's value
+     * @param keys
+     * @param incrExpiry
+     * @return
+     */
+    StoreResponse touch(Key[] keys, long expiry);
+
+    /**
+     * Get and touch.  Semantically the same as get, but it changes the timeout to the provided value
+     * @param expire
+     * @param keys
+     * @return
+     */
+    CACHE_ELEMENT[] gat(long expire, Key[] keys);
 
 }

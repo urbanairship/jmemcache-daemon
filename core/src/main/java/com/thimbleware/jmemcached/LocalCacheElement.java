@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
  * Represents information about a cache entry.
  */
 public final class LocalCacheElement implements CacheElement {
-    private long expire ;
+    private long expire;
     private int flags;
     private ChannelBuffer data;
     private Key key;
@@ -169,6 +169,10 @@ public final class LocalCacheElement implements CacheElement {
 
     public long getExpire() {
         return expire;
+    }
+    
+    public void setExpire(long expire){
+	this.expire = expire;
     }
 
     public int getFlags() {

@@ -162,14 +162,16 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
     /**
      * @inheritDoc
      */
-    public Integer get_add(Key key, int mod) {
+    public Integer get_add(Key key, int mod, long expire) {
         LocalCacheElement old = storage.get(key);
         if (old == null || isBlocked(old) || isExpired(old)) {
             getMisses.incrementAndGet();
             return null;
         } else {
             LocalCacheElement.IncrDecrResult result = old.add(mod);
-            return storage.replace(old.getKey(), old, result.replace) ? result.oldValue : null;
+            LocalCacheElement replacement = result.replace;
+            replacement.setExpire(expire);
+            return storage.replace(old.getKey(), old, replacement) ? result.oldValue : null;
         }
     }
 
@@ -211,9 +213,56 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
         getHits.addAndGet(hits);
 
         return elements;
-
     }
+    
+    public LocalCacheElement[] gat(long expire, Key[] keys) {
+        getCmds.incrementAndGet();//updates stats
 
+        LocalCacheElement[] elements = new LocalCacheElement[keys.length];
+        int x = 0;
+        int hits = 0;
+        int misses = 0;
+        for (Key key : keys) {
+            LocalCacheElement e = storage.get(key);
+            if (e == null || isExpired(e) || e.isBlocked()) {
+                misses++;
+
+                elements[x] = null;
+            } else {
+                hits++;
+
+                e.setExpire(expire);
+                storage.put(key, e);
+                elements[x] = e;
+            }
+            x++;
+
+        }
+        getMisses.addAndGet(misses);
+        getHits.addAndGet(hits);
+
+        return elements;
+    }
+    
+    public StoreResponse touch(Key[] keys,
+	    long expiry) {
+	StoreResponse response = StoreResponse.NOT_FOUND;
+	
+	int x = 0;
+        for (Key key : keys) {
+            LocalCacheElement e = storage.get(key);
+            if (e == null || isExpired(e) || e.isBlocked()) {
+
+            } else {
+        	e.setExpire(expiry);
+                storage.put(key, e);
+                response = StoreResponse.STORED;
+            }
+            x++;
+        }
+        return response;
+    }
+    
     /**
      * @inheritDoc
      */
@@ -303,4 +352,5 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
                 return element.getKey().toString().compareTo(((DelayedMCElement) delayed).element.getKey().toString());
         }
     }
+
 }

@@ -27,7 +27,9 @@ import java.util.Map;
 public enum Op {
     GET, GETS, APPEND, PREPEND, DELETE, DECR,
     INCR, REPLACE, ADD, SET, CAS, STATS, VERSION,
-    QUIT, FLUSH_ALL, VERBOSITY, NOOP, GETQ, GETKQ;
+    QUIT, FLUSH_ALL, VERBOSITY, NOOP, GETQ, GETKQ,
+    TOUCH, GAT, GATQ
+    ;
 
     private static Map<ChannelBuffer, Op> opsbf = new HashMap<ChannelBuffer, Op>();
 

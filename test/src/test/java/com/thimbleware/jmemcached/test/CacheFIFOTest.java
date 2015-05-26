@@ -23,10 +23,10 @@ public class CacheFIFOTest extends AbstractCacheTest {
         super(cacheType, blockSize, protocolMode);
     }
 
-    // TODO:  this test fails on block cache since FIFOing is hard
-    @Ignore
     @Test
     public void testExpire() {
+	if(this.getCacheType() != CacheType.LOCAL_HASH) return;
+	
         // max MAX_SIZE items in cache, so create fillSize items and then verify that only a MAX_SIZE are ever in the cache
         int fillSize = MAX_SIZE * 2;
 

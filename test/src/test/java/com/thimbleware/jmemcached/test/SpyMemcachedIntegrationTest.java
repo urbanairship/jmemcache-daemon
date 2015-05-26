@@ -1,19 +1,26 @@
 package com.thimbleware.jmemcached.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.charset.Charset;
-import java.util.*;
-import java.util.concurrent.Future;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import net.spy.memcached.*;
-import net.spy.memcached.transcoders.Transcoder;
+import net.spy.memcached.BinaryConnectionFactory;
+import net.spy.memcached.CASResponse;
+import net.spy.memcached.CASValue;
+import net.spy.memcached.MemcachedClient;
 
 import org.junit.After;
 import org.junit.Before;
@@ -184,6 +191,51 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         assertEquals( "foobar", _client.get( "foo" ));
         _client.prepend(0, "foo", "baz");
         assertEquals( "bazfoobar", _client.get( "foo" ));
+    }
+    
+    @Test
+    public void testTouch() throws Exception {
+	
+	// TODO the TOUCH command *is* supported by the text protocol, but we don't
+	// presently implement it.
+	if(this.getProtocolMode() == ProtocolMode.TEXT) return;
+	
+	// no expiration at first
+        Future<Boolean> future = _client.set("foo", 0, "foo");
+        assertTrue(future.get());
+        
+        // ensure it's present in the cache
+        assertEquals("foo", _client.get("foo"));
+
+        // touch to expire in 3sec
+        future = _client.touch("foo", 3);
+        assertTrue(future.get());
+        
+        // sleep 3.5 sec 
+        Thread.sleep(3500);
+        
+        // should be expired
+        assertNull("cache entry should be expired", _client.get("foo"));
+    }
+    
+    @Test
+    public void testGetAndTouch() throws Exception {
+	
+	// GAT is NOT supported by the text protocol
+	if(this.getProtocolMode() == ProtocolMode.TEXT) return;
+	
+	// no expiration at first
+        Future<Boolean> future = _client.set("foo", 0, "foo");
+        assertTrue(future.get());
+
+        // ensure it's present in the cache; expire in 3sec
+        assertEquals("foo", _client.getAndTouch("foo", 3).getValue());
+        
+        // sleep 3.5 sec 
+        Thread.sleep(3500);
+        
+        // should be expired
+        assertNull(_client.get("foo"));
     }
 
     @Test

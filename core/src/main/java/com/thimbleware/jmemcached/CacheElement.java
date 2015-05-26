@@ -16,6 +16,8 @@ public interface CacheElement extends Serializable, SizedItem {
     int hashCode();
 
     long getExpire();
+    
+    void setExpire(long expire);
 
     int getFlags();
 

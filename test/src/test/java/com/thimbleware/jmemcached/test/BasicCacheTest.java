@@ -203,17 +203,26 @@ public class BasicCacheTest extends AbstractCacheTest {
         LocalCacheElement element = new LocalCacheElement(testKey, 0, NO_EXPIRE, 0L);
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
+        
+        long nowSec = System.currentTimeMillis() / 1000;
+        long expireSec = nowSec + 5000; // expire 5000 seconds from now
+        
         // put in cache
         assertEquals(cache.set(element), Cache.StoreResponse.STORED);
 
         // increment
-        assertEquals("value correctly incremented", (Integer)2, cache.get_add(testKey, 1));
+        assertEquals("value correctly incremented", (Integer)2, cache.get_add(testKey, 1, NO_EXPIRE));
+        
+        // increment
+        assertEquals("value correctly incremented", (Integer)3, cache.get_add(testKey, 1, expireSec));
+        assertEquals("expiration correctly set", expireSec, cache.get(testKey)[0].getExpire());
 
         // increment by more
-        assertEquals("value correctly incremented", (Integer)7, cache.get_add(testKey, 5));
-
+        assertEquals("value correctly incremented", (Integer)7, cache.get_add(testKey, 4, NO_EXPIRE));
+        assertEquals("expiration correctly set", NO_EXPIRE, cache.get(testKey)[0].getExpire());
+        
         // decrement
-        assertEquals("value correctly decremented", (Integer)2, cache.get_add(testKey, -5));
+        assertEquals("value correctly decremented", (Integer)2, cache.get_add(testKey, -5, NO_EXPIRE));
     }
 
 

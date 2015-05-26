@@ -45,11 +45,11 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
 
     public ResponseCode getStatusCode(ResponseMessage command) {
         Op cmd = command.cmd.op;
-        if (cmd == Op.GET || cmd == Op.GETS || cmd == Op.GETQ) {
+        if (cmd == Op.GET || cmd == Op.GETS || cmd == Op.GETQ || cmd == Op.GAT || cmd == Op.GATQ) {
             // https://code.google.com/p/memcached/wiki/MemcacheBinaryProtocol
             // If the item exist on the server the following packet is returned, otherwise a packet with status code != 0 will be returned (see Introduction (Section 4.1))
             return (command.elements != null && command.elements.length != 0 && command.elements[0] != null) ? ResponseCode.OK : ResponseCode.KEYNF;
-        } else if (cmd == Op.SET || cmd == Op.CAS || cmd == Op.ADD || cmd == Op.REPLACE || cmd == Op.APPEND  || cmd == Op.PREPEND) {
+        } else if (cmd == Op.SET || cmd == Op.CAS || cmd == Op.ADD || cmd == Op.REPLACE || cmd == Op.APPEND  || cmd == Op.PREPEND || cmd == Op.TOUCH) {
             switch (command.response) {
                 case EXISTS:
                     return ResponseCode.KEYEXISTS;
@@ -156,7 +156,7 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
             extrasBuffer.writeShort((short) (element != null ? element.getExpire() : 0));
             extrasBuffer.writeShort((short) (element != null ? element.getFlags() : 0));
 
-            if ((command.cmd.op == Op.GET || command.cmd.op == Op.GETS || command.cmd.op == Op.GETQ || command.cmd.op == Op.GETKQ)) {
+            if ((command.cmd.op == Op.GET || command.cmd.op == Op.GETS || command.cmd.op == Op.GETQ || command.cmd.op == Op.GETKQ || command.cmd.op == Op.GAT || command.cmd.op == Op.GATQ)) {
                 if (element != null) {
                     sendResponseEvenIfQuiet = true;
                     valueBuffer = ChannelBuffers.wrappedBuffer(element.getData());
