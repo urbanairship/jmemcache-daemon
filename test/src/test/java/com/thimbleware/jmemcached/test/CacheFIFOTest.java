@@ -1,18 +1,21 @@
 package com.thimbleware.jmemcached.test;
 
-import com.thimbleware.jmemcached.*;
+import static com.thimbleware.jmemcached.LocalCacheElement.Now;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+
+import java.util.Arrays;
 
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-
-import static com.thimbleware.jmemcached.LocalCacheElement.Now;
-import static junit.framework.Assert.*;
+import com.thimbleware.jmemcached.Cache;
+import com.thimbleware.jmemcached.CacheElement;
+import com.thimbleware.jmemcached.Key;
+import com.thimbleware.jmemcached.LocalCacheElement;
 
 /**
  */

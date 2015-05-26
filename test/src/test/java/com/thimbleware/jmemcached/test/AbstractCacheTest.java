@@ -67,7 +67,7 @@ public abstract class AbstractCacheTest {
         
         port = AvailablePortFinder.getNextAvailable();
         daemon.setAddr(new InetSocketAddress(port));
-        daemon.setVerbose(true);
+        daemon.setVerbose(false);
         daemon.start();
 
         cache = daemon.getCache();

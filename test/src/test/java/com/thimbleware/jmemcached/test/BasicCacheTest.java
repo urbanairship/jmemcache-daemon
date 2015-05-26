@@ -1,10 +1,7 @@
 package com.thimbleware.jmemcached.test;
 
-import static com.thimbleware.jmemcached.LocalCacheElement.Now;
-import com.thimbleware.jmemcached.*;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -12,7 +9,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.ByteBuffer;
+import com.thimbleware.jmemcached.Cache;
+import com.thimbleware.jmemcached.CacheElement;
+import com.thimbleware.jmemcached.Key;
+import com.thimbleware.jmemcached.LocalCacheElement;
 
 /**
  */
