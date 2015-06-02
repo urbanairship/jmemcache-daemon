@@ -137,7 +137,7 @@
 
         <dependency>
             <artifactId>jmemcached-core</artifactId>
-            <groupId>com.thimbleware.jmemcached</groupId>
+            <groupId>com.inin.jmemcached</groupId>
             <version>${project.version}</version>
         </dependency>
 

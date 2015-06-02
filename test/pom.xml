@@ -24,14 +24,14 @@
         </dependency>
         
         <dependency>
-            <groupId>com.thimbleware.jmemcached</groupId>
+            <groupId>com.inin.jmemcached</groupId>
             <artifactId>jmemcached-core</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.thimbleware.jmemcached</groupId>
+            <groupId>com.inin.jmemcached</groupId>
             <artifactId>jmemcached-cli</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
