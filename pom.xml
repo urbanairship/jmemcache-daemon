@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.inin.jmemcached</groupId>
     <artifactId>jmemcached-parent</artifactId>
@@ -74,6 +75,33 @@
                             <useAgent>true</useAgent>
                         </configuration>
                     </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>2.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                 </plugins>
             </build>
         </profile>
@@ -105,41 +133,31 @@
         </developer>
     </developers>
 
+<!--     <distributionManagement> -->
+<!--         <repository> -->
+<!--             <id>sonatype-release</id> -->
+<!--             <name>Sonatype Release</name> -->
+<!--             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url> -->
+<!--         </repository> -->
+<!--         <snapshotRepository> -->
+<!--             <id>sonatype-snapshot</id> -->
+<!--             <name>Sonatype Snapshot Repository</name> -->
+<!--             <url>https://oss.sonatype.org/content/repositories/snapshots</url> -->
+<!--         </snapshotRepository> -->
+<!--     </distributionManagement> -->
+
     <distributionManagement>
         <repository>
             <id>inin-release</id>
             <name>ININ Release Repository</name>
-            <url>http://nexus.infrastructure.inintca.com/nexus/content/repositories/inin-release</url>
+            <url>https://purecloud.artifactoryonline.com/purecloud/inin-release</url>
         </repository>
         <snapshotRepository>
             <id>inin-snapshot</id>
             <name>ININ Snapshot Repository</name>
-            <url>http://nexus.infrastructure.inintca.com/nexus/content/repositories/inin-snapshot</url>
+            <url>https://purecloud.artifactoryonline.com/purecloud/inin-snapshot</url>
         </snapshotRepository>
     </distributionManagement>
-
-
-<!--     <repositories> -->
-
-<!--         <repository> -->
-<!--             <id>repository.jboss.org</id> -->
-<!--             <url>http://repository.jboss.org/nexus/content/groups/public/</url> -->
-<!--             <snapshots> -->
-<!--                 <enabled>false</enabled> -->
-<!--             </snapshots> -->
-<!--         </repository> -->
-
-<!--         <repository> -->
-<!--             <id>spy</id> -->
-<!--             <name>Spy Repository</name> -->
-<!--             <layout>default</layout> -->
-<!--             <url>http://bleu.west.spy.net/~dustin/m2repo/</url> -->
-<!--             <snapshots> -->
-<!--                 <enabled>false</enabled> -->
-<!--             </snapshots> -->
-<!--         </repository> -->
-<!--     </repositories> -->
-
 
     <dependencyManagement>
         <dependencies>
