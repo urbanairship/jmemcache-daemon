@@ -15,7 +15,9 @@ public interface CacheElement extends Serializable, SizedItem {
 
     int hashCode();
 
-    long getExpire();
+    long getExpire(); // uint
+    
+    void setExpire(long expire); // uint
 
     int getFlags();
 
@@ -39,5 +41,5 @@ public interface CacheElement extends Serializable, SizedItem {
 
     CacheElement prepend(LocalCacheElement element);
 
-    LocalCacheElement.IncrDecrResult add(int mod);
+    LocalCacheElement.IncrDecrResult add(long mod);
 }

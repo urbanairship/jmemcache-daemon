@@ -22,7 +22,7 @@ public final class ResponseMessage<CACHE_ELEMENT extends CacheElement> implement
     public Map<String, Set<String>> stats;
     public String version;
     public Cache.DeleteResponse deleteResponse;
-    public Integer incrDecrResponse;
+    public Long incrDecrResponse;
     public boolean flushSuccess;
 
     public ResponseMessage<CACHE_ELEMENT> withElements(CACHE_ELEMENT[] elements) {
@@ -40,7 +40,7 @@ public final class ResponseMessage<CACHE_ELEMENT extends CacheElement> implement
         return this;
     }
 
-    public ResponseMessage<CACHE_ELEMENT> withIncrDecrResponse(Integer incrDecrResp) {
+    public ResponseMessage<CACHE_ELEMENT> withIncrDecrResponse(Long incrDecrResp) {
         this.incrDecrResponse = incrDecrResp;
 
         return this;

@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
  * Represents information about a cache entry.
  */
 public final class LocalCacheElement implements CacheElement {
-    private long expire ;
+    private long expire; // uint
     private int flags;
     private ChannelBuffer data;
     private Key key;
@@ -107,24 +107,24 @@ public final class LocalCacheElement implements CacheElement {
     }
 
     public static class IncrDecrResult {
-        int oldValue;
+        long oldValue;
         LocalCacheElement replace;
 
-        public IncrDecrResult(int oldValue, LocalCacheElement replace) {
+        public IncrDecrResult(long oldValue, LocalCacheElement replace) {
             this.oldValue = oldValue;
             this.replace = replace;
         }
     }
 
-    public IncrDecrResult add(int mod) {
+    public IncrDecrResult add(long mod) {
         // TODO handle parse failure!
-        int modVal = BufferUtils.atoi(getData()) + mod; // change value
+        long modVal = BufferUtils.atol(getData()) + mod; // change value
         if (modVal < 0) {
             modVal = 0;
 
         } // check for underflow
 
-        ChannelBuffer newData = BufferUtils.itoa(modVal);
+        ChannelBuffer newData = BufferUtils.ltoa(modVal);
 
         LocalCacheElement replace = new LocalCacheElement(getKey(), getFlags(), getExpire(), 0L);
         replace.setData(newData);
@@ -167,8 +167,15 @@ public final class LocalCacheElement implements CacheElement {
         return new LocalCacheElement(key);
     }
 
+    /**
+     * uint
+     */
     public long getExpire() {
         return expire;
+    }
+    
+    public void setExpire(long expire){
+	this.expire = expire;
     }
 
     public int getFlags() {
@@ -213,7 +220,7 @@ public final class LocalCacheElement implements CacheElement {
 
     public static LocalCacheElement readFromBuffer(ChannelBuffer in) {
         int bufferSize = in.readInt();
-        long expiry = in.readLong();
+        long expiry = in.readUnsignedInt();
         int keyLength = in.readInt();
         ChannelBuffer key = in.slice(in.readerIndex(), keyLength);
         in.skipBytes(keyLength);
@@ -234,12 +241,12 @@ public final class LocalCacheElement implements CacheElement {
     }
 
     public int bufferSize() {
-        return 4 + 8 + 4 + key.bytes.capacity() + 4 + 4 + 4 + data.capacity() + 8 + 1 + 8;
+        return 4 + 4 + 4 + key.bytes.capacity() + 4 + 4 + 4 + data.capacity() + 8 + 1 + 8;
     }
 
     public void writeToBuffer(ChannelBuffer out) {
         out.writeInt(bufferSize());
-        out.writeLong(expire) ;
+        out.writeInt((int)expire);
         out.writeInt(key.bytes.capacity());
         out.writeBytes(key.bytes);
         out.writeInt(flags);

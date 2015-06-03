@@ -1,16 +1,21 @@
 package com.thimbleware.jmemcached.test;
 
-import com.thimbleware.jmemcached.*;
+import static com.thimbleware.jmemcached.LocalCacheElement.Now;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+
+import java.util.Arrays;
+
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-
-import static com.thimbleware.jmemcached.LocalCacheElement.Now;
-import static junit.framework.Assert.*;
+import com.thimbleware.jmemcached.Cache;
+import com.thimbleware.jmemcached.CacheElement;
+import com.thimbleware.jmemcached.Key;
+import com.thimbleware.jmemcached.LocalCacheElement;
 
 /**
  */
@@ -23,6 +28,8 @@ public class CacheFIFOTest extends AbstractCacheTest {
 
     @Test
     public void testExpire() {
+	if(this.getCacheType() != CacheType.LOCAL_HASH) return;
+	
         // max MAX_SIZE items in cache, so create fillSize items and then verify that only a MAX_SIZE are ever in the cache
         int fillSize = MAX_SIZE * 2;
 
@@ -35,7 +42,7 @@ public class CacheFIFOTest extends AbstractCacheTest {
             // verify that the size of the cache is correct
             int maximum = i < MAX_SIZE ? i + 1 : MAX_SIZE;
 
-            assertEquals("correct number of items stored", maximum, daemon.getCache().getCurrentItems());
+            assertEquals("correct number of items stored (index " + i + ")", maximum, daemon.getCache().getCurrentItems());
         }
 
         // verify that the size of the cache is correct

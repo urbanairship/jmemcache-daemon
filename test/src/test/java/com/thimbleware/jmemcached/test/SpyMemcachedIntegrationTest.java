@@ -2,20 +2,29 @@ package com.thimbleware.jmemcached.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.*;
-import java.util.concurrent.Future;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import net.spy.memcached.*;
+import net.spy.memcached.BinaryConnectionFactory;
+import net.spy.memcached.CASResponse;
+import net.spy.memcached.CASValue;
+import net.spy.memcached.MemcachedClient;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,9 +58,24 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
 
         this.address = new InetSocketAddress("localhost", getPort());
         if (getProtocolMode() == ProtocolMode.BINARY)
-            _client = new MemcachedClient( new BinaryConnectionFactory(), Arrays.asList( address ) );
+            _client = new MemcachedClient( new BinaryConnectionFactoryWithTimeout(60000), Arrays.asList( address ) );
         else
             _client = new MemcachedClient( Arrays.asList( address ) );
+    }
+    
+    private class BinaryConnectionFactoryWithTimeout extends BinaryConnectionFactory {
+	
+	private long timeoutMs;
+	
+	public BinaryConnectionFactoryWithTimeout(long timeoutMs){
+	    super();
+	    this.timeoutMs = timeoutMs;
+	}
+	
+	@Override
+	public long getOperationTimeout(){
+	    return timeoutMs;
+	}
     }
 
     @After
@@ -67,7 +91,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         assertTrue(future.get());
         assertEquals( "bar", _client.get( "foo" ) );
     }
-
+    
     @Test
     public void testIncrDecr() throws ExecutionException, InterruptedException {
         Future<Boolean> future = _client.set("foo", 0, "1");
@@ -77,6 +101,10 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         assertEquals( "6", _client.get( "foo" ) );
         _client.decr( "foo", 10 );
         assertEquals( "0", _client.get( "foo" ) );
+        
+        assertEquals( null, _client.get( "bar" ) );
+        long retVal = _client.incr( "bar", 5 );
+        assertEquals( -1, retVal);
     }
 
     @Test
@@ -124,6 +152,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Boolean> future = _client.set(KEY, TWO_WEEKS, bigObject);
         assertTrue(future.get());
         final Map<String, Double> map = (Map<String, Double>)_client.get(KEY);
+        assertNotNull(map);
         for (String key : map.keySet()) {
             Integer kint = Integer.valueOf(key);
             Double val = map.get(key);
@@ -136,6 +165,8 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Boolean> future = _client.set("foo", 32000, 123);
         assertTrue(future.get());
         CASValue<Object> casValue = _client.gets("foo");
+        
+        assertNotNull(casValue);
         assertEquals( 123, casValue.getValue());
 
         CASResponse cr = _client.cas("foo", casValue.getCas(), 456);
@@ -152,6 +183,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Boolean> future = _client.add("foo", 32000, 123);
         assertTrue(future.get());
         CASValue<Object> casValue = _client.gets("foo"); // should not produce an error
+        assertNotNull(casValue);
         assertEquals( 123, casValue.getValue());
     }
 
@@ -165,12 +197,60 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         _client.prepend(0, "foo", "baz");
         assertEquals( "bazfoobar", _client.get( "foo" ));
     }
+    
+    @Test
+    public void testTouch() throws Exception {
+	
+	// TODO the TOUCH command *is* supported by the text protocol, but we don't
+	// presently implement it.
+	if(this.getProtocolMode() == ProtocolMode.TEXT) return;
+	
+	// no expiration at first
+        Future<Boolean> future = _client.set("foo", 0, "foo");
+        assertTrue("set should be successful", future.get());
+        
+        // ensure it's present in the cache
+        assertEquals("cache should contain a value for key 'foo'", "foo", _client.get("foo"));
+
+        // touch to expire in 3sec after it hits the server
+        future = _client.touch("foo", 3);
+        assertTrue("touch should be successful", future.get());
+        
+        // sleep 5 sec 
+        Thread.sleep(5000);
+        
+        // should be expired
+        assertNull("cache entry should be expired", _client.get("foo"));
+    }
+    
+    @Test
+    public void testGetAndTouch() throws Exception {
+	
+	// GAT is NOT supported by the text protocol
+	if(this.getProtocolMode() == ProtocolMode.TEXT) return;
+	
+	// no expiration at first
+        Future<Boolean> future = _client.set("foo", 0, "foo");
+        assertTrue("set should be successful", future.get());
+
+        // ensure it's present in the cache; expire in 3sec after it hits the server
+        assertEquals("cache should contain a value for key 'foo'", "foo", _client.getAndTouch("foo", 3).getValue());
+        
+        // sleep 5 sec 
+        Thread.sleep(5000);
+        
+        // should be expired
+        assertNull("cache entry should be expired", _client.get("foo"));
+    }
 
     @Test
     public void testBulkGet() throws IOException, InterruptedException, ExecutionException, TimeoutException {
         ArrayList<String> allStrings = new ArrayList<String>();
         ArrayList<Future<Boolean>> futures = new ArrayList<Future<Boolean>>();
-        for (int i = 0; i < 500; i++) {
+        
+        final int NUM_BULK_KEYS = 5;
+        
+        for (int i = 0; i < NUM_BULK_KEYS; i++) {
             futures.add(_client.set("foo" + i, 360000, "bar" + i));
             allStrings.add("foo" + i);
         }
@@ -184,7 +264,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         Future<Map<String, Object>> future = _client.asyncGetBulk(allStrings);
         Map<String, Object> results = future.get();
 
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < NUM_BULK_KEYS; i++) {
             assertEquals("bar" + i, results.get("foo" + i));
         }
 
@@ -198,6 +278,50 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         }
 
         return map;
+    }
+    
+    
+    @Test
+    public void testIncrementCounter() throws Exception {
+	
+	// uses GAT so no text protocol
+	if(this.getProtocolMode() == ProtocolMode.TEXT) return;
+	
+        String key = UUID.randomUUID().toString();
+        Long value = getCounter(key);
+        // should get back 1 as the default since it doesn't exist yet
+        Assert.assertEquals(1L, value.longValue());
+
+        value = incrementCounter(key);
+        // should get back 2 as the default since it doesn't exist yet
+        Assert.assertEquals(2L, value.longValue());
+
+        value = incrementCounter(key);
+        Assert.assertEquals(3L, value.longValue());
+
+        value = getCounter(key);
+        Assert.assertEquals(3L, value.longValue());
+    }
+    
+    int cacheTimeInS = 15 * 60; // 15 minutes
+    
+    /* This test case fails in a client project */
+    public Long incrementCounter(String key) throws Exception {
+        //try {
+            return _client.incr(key, 1, 2, cacheTimeInS);
+        //} catch (Exception e) {
+        //    return 1L;
+        //}
+    }
+
+    public Long getCounter(String key) {
+        CASValue<Object> value = _client.getAndTouch(key, cacheTimeInS);
+        // default transcoder returns the value as a string
+        try {
+            return value == null ? 1 : Long.parseLong((String) value.getValue());
+        } catch (NumberFormatException ignored) {
+            return 1L;
+        }
     }
 
 

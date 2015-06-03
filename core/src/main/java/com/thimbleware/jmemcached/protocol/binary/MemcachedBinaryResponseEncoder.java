@@ -45,11 +45,11 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
 
     public ResponseCode getStatusCode(ResponseMessage command) {
         Op cmd = command.cmd.op;
-        if (cmd == Op.GET || cmd == Op.GETS) {
+        if (cmd == Op.GET || cmd == Op.GETS || cmd == Op.GETQ || cmd == Op.GAT || cmd == Op.GATQ) {
             // https://code.google.com/p/memcached/wiki/MemcacheBinaryProtocol
             // If the item exist on the server the following packet is returned, otherwise a packet with status code != 0 will be returned (see Introduction (Section 4.1))
             return (command.elements != null && command.elements.length != 0 && command.elements[0] != null) ? ResponseCode.OK : ResponseCode.KEYNF;
-        } else if (cmd == Op.SET || cmd == Op.CAS || cmd == Op.ADD || cmd == Op.REPLACE || cmd == Op.APPEND  || cmd == Op.PREPEND) {
+        } else if (cmd == Op.SET || cmd == Op.CAS || cmd == Op.ADD || cmd == Op.REPLACE || cmd == Op.APPEND  || cmd == Op.PREPEND || cmd == Op.TOUCH) {
             switch (command.response) {
                 case EXISTS:
                     return ResponseCode.KEYEXISTS;
@@ -129,6 +129,9 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
     @Override
     @SuppressWarnings("unchecked")
     public void messageReceived(ChannelHandlerContext channelHandlerContext, MessageEvent messageEvent) throws Exception {
+	
+	// TODO GETQ doesn't look quite right here.  it should return no response if nothing found in the cache
+	
         ResponseMessage<CACHE_ELEMENT> command = (ResponseMessage<CACHE_ELEMENT>) messageEvent.getMessage();
         Object additional = messageEvent.getMessage();
 
@@ -143,6 +146,8 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
             keyBuffer = ChannelBuffers.wrappedBuffer(command.cmd.keys.get(0).bytes);
         }
 
+        boolean sendResponseEvenIfQuiet = false;
+        
         // write value if there is one
         ChannelBuffer valueBuffer = null;
         if (command.elements != null) {
@@ -151,8 +156,9 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
             extrasBuffer.writeShort((short) (element != null ? element.getExpire() : 0));
             extrasBuffer.writeShort((short) (element != null ? element.getFlags() : 0));
 
-            if ((command.cmd.op == Op.GET || command.cmd.op == Op.GETS || command.cmd.op == Op.GETQ || command.cmd.op == Op.GETKQ)) {
+            if ((command.cmd.op == Op.GET || command.cmd.op == Op.GETS || command.cmd.op == Op.GETQ || command.cmd.op == Op.GETKQ || command.cmd.op == Op.GAT || command.cmd.op == Op.GATQ)) {
                 if (element != null) {
+                    sendResponseEvenIfQuiet = true;
                     valueBuffer = ChannelBuffers.wrappedBuffer(element.getData());
                 } else {
                     valueBuffer = ChannelBuffers.buffer(0);
@@ -163,7 +169,7 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
             }
         } else if (command.cmd.op == Op.INCR || command.cmd.op == Op.DECR) {
             valueBuffer = ChannelBuffers.buffer(ByteOrder.BIG_ENDIAN, 8);
-            valueBuffer.writeLong(command.incrDecrResponse);
+            valueBuffer.writeLong(command.incrDecrResponse != null ? command.incrDecrResponse : -1L);
         }
 
         long casUnique = 0;
@@ -199,8 +205,8 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
             ChannelBuffer headerBuffer = constructHeader(bcmd, extrasBuffer, keyBuffer, valueBuffer, getStatusCode(command).code, command.cmd.opaque, casUnique);
 
             // write everything
-            // is the command 'quiet?' if so, then we append to our 'corked' buffer until a non-corked command comes along
-            if (bcmd.noreply) {
+            // is the command 'quiet?' if so, then we append to our 'corked' buffer until a non-corked command comes along 
+            if (bcmd.noreply && !sendResponseEvenIfQuiet) {
                 int totalCapacity = headerBuffer.capacity() + (extrasBuffer != null ? extrasBuffer.capacity() : 0)
                         + (keyBuffer != null ? keyBuffer.capacity() : 0) + (valueBuffer != null ? valueBuffer.capacity() : 0);
 
@@ -215,9 +221,10 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
                 if (valueBuffer != null)
                     corkedResponse.writeBytes(valueBuffer);
             } else {
-                // first write out any corked responses
-                 if (corkedBuffers.containsKey(command.cmd.opaque)) uncork(command.cmd.opaque, messageEvent.getChannel());
-                
+        	if(!sendResponseEvenIfQuiet){
+        	    // first write out any corked responses
+        	    if (corkedBuffers.containsKey(command.cmd.opaque)) uncork(command.cmd.opaque, messageEvent.getChannel());
+        	}
 
                 writePayload(messageEvent, extrasBuffer, keyBuffer, valueBuffer, headerBuffer);
             }

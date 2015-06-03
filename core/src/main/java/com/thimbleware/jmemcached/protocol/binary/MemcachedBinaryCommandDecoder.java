@@ -52,7 +52,42 @@ public class MemcachedBinaryCommandDecoder extends FrameDecoder {
         QuitQ(0x17, Op.QUIT, true),
         FlushQ(0x18, Op.FLUSH_ALL, true),
         AppendQ(0x19, Op.APPEND, true),
-        PrependQ(0x1A, Op.PREPEND, true);
+        PrependQ(0x1A, Op.PREPEND, true),
+        Verbosity(0x1B, Op.VERBOSITY, false),
+        Touch(0x1C, Op.TOUCH, false),
+        GAT(0x1D, Op.GAT, false),
+        GATQ(0x1E, Op.GATQ, true),
+        
+        /*
+        SASLListMechs(0x20, Op.NOOP, false),
+        SASLAuth(0x21, Op.NOOP, false),
+        SASLStep(0x22, Op.NOOP, false),
+        RGet(0x30, Op.NOOP, false),
+        RSet(0x31, Op.NOOP, false),
+        RSetQ(0x32, Op.NOOP, true),
+        RAppend(0x33, Op.NOOP, false),
+        RAppendQ(0x34, Op.NOOP, true),
+        RPrepend(0x35, Op.NOOP, false),
+        RPrependQ(0x36, Op.NOOP, true),
+        RDelete(0x37, Op.NOOP, false),
+        RDeleteQ(0x38, Op.NOOP, true),
+        RIncr(0x39, Op.NOOP, false),
+        RIncrQ(0x3A, Op.NOOP, true),
+        RDecr(0x3B, Op.NOOP, false),
+        RDecrQ(0x3C, Op.NOOP, true),
+        SetVBucket(0x3D, Op.NOOP, false),
+        GetVBucket(0x3E, Op.NOOP, false),
+        DelVBucket(0x3F, Op.NOOP, false),
+        TAPConnect(0x40, Op.NOOP, false),
+        TAPMutation(0x41, Op.NOOP, false),
+        TAPDelete(0x42, Op.NOOP, false),
+        TAPFlush(0x43, Op.NOOP, false),
+        TAPOpaque(0x44, Op.NOOP, false),
+        TAPVBucketSet(0x45, Op.NOOP, false),
+        TAPCheckpointStart(0x46, Op.NOOP, false),
+        TAPCheckpointEnd(0x47, Op.NOOP, false),
+        */
+        ;
 
         public byte code;
         public Op correspondingOp;
@@ -156,20 +191,28 @@ public class MemcachedBinaryCommandDecoder extends FrameDecoder {
                 // the remainder of the message -- that is, totalLength - (keyLength + extraLength) should be the payload
                 int size = totalBodyLength - keyLength - extraLength;
 
-                cmdMessage.element = new LocalCacheElement(new Key(keyBuffer.slice()), flags, expire != 0 && expire < CacheElement.THIRTY_DAYS ? LocalCacheElement.Now() + expire : expire, 0L);
+                cmdMessage.element = new LocalCacheElement(new Key(keyBuffer.slice()), flags, fixExpire(expire), 0L);
                 ChannelBuffer data = ChannelBuffers.buffer(size);
                 channelBuffer.readBytes(data);
                 cmdMessage.element.setData(data);
             } else if (cmdType == Op.INCR || cmdType == Op.DECR) {
-                long initialValue = extrasBuffer.readUnsignedInt();
-                long amount = extrasBuffer.readUnsignedInt();
+                long amount = extrasBuffer.readLong();
+                long initialValue = extrasBuffer.readLong();
                 long expiration = extrasBuffer.readUnsignedInt();
 
-                cmdMessage.incrAmount = (int) amount;
-                cmdMessage.incrExpiry = (int) expiration;
+                cmdMessage.incrInitial = initialValue;
+                cmdMessage.incrAmount = amount;
+                cmdMessage.incrExpiry = fixExpire(expiration);
+            } else if (cmdType == Op.GAT || cmdType == Op.GATQ || cmdType == Op.TOUCH){
+        	long expiration = extrasBuffer.readUnsignedInt();
+        	cmdMessage.incrExpiry = fixExpire(expiration);
             }
         }
 
         return cmdMessage;
+    }
+    
+    private long fixExpire(long expire){
+	return (expire != 0) && expire < CacheElement.THIRTY_DAYS ? LocalCacheElement.Now() + expire : expire;
     }
 }

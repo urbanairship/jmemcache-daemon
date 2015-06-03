@@ -116,8 +116,10 @@ public final class MemcachedResponseEncoder<CACHE_ELEMENT extends CacheElement> 
                 break;
             case DECR:
             case INCR:
-                if (!command.cmd.noreply)
-                    Channels.write(channel, incrDecrResponseString(command.incrDecrResponse));
+                if (!command.cmd.noreply){
+                    Channels.write(channel, incrDecrResponseString((command.incrDecrResponse)));
+                }
+                    
                 break;
             case STATS:
                 for (Map.Entry<String, Set<String>> stat : command.stats.entrySet()) {
@@ -164,7 +166,7 @@ public final class MemcachedResponseEncoder<CACHE_ELEMENT extends CacheElement> 
     }
 
 
-    private ChannelBuffer incrDecrResponseString(Integer ret) {
+    private ChannelBuffer incrDecrResponseString(Long ret) {
         if (ret == null)
             return NOT_FOUND.duplicate();
         else

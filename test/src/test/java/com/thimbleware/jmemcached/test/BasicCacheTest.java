@@ -1,10 +1,7 @@
 package com.thimbleware.jmemcached.test;
 
-import static com.thimbleware.jmemcached.LocalCacheElement.Now;
-import com.thimbleware.jmemcached.*;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -12,7 +9,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.ByteBuffer;
+import com.thimbleware.jmemcached.Cache;
+import com.thimbleware.jmemcached.CacheElement;
+import com.thimbleware.jmemcached.Key;
+import com.thimbleware.jmemcached.LocalCacheElement;
 
 /**
  */
@@ -70,7 +70,7 @@ public class BasicCacheTest extends AbstractCacheTest {
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
         // put in cache
-        assertEquals(cache.add(element), Cache.StoreResponse.STORED);
+        assertEquals(Cache.StoreResponse.STORED, cache.add(element));
 
         // get result
         CacheElement result = cache.get(testKey)[0];
@@ -87,7 +87,7 @@ public class BasicCacheTest extends AbstractCacheTest {
 
         // now replace
         testvalue = "54321";
-        element = new LocalCacheElement(testKey, 0, Now(), 0L);
+        element = new LocalCacheElement(testKey, 0, NO_EXPIRE, 0L);
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
         // put in cache
@@ -168,10 +168,10 @@ public class BasicCacheTest extends AbstractCacheTest {
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
         // put in cache
-        assertEquals(cache.add(element), Cache.StoreResponse.STORED);
+        assertEquals(Cache.StoreResponse.STORED, cache.add(element));
 
         // put in cache again and fail
-        assertEquals(cache.add(element), Cache.StoreResponse.NOT_STORED);
+        assertEquals(Cache.StoreResponse.EXISTS, cache.add(element));
 
         assertEquals("cache has only 1 element", 1, cache.getCurrentItems());
     }
@@ -203,17 +203,31 @@ public class BasicCacheTest extends AbstractCacheTest {
         LocalCacheElement element = new LocalCacheElement(testKey, 0, NO_EXPIRE, 0L);
         element.setData(ChannelBuffers.wrappedBuffer(testvalue.getBytes()));
 
+        
+        long nowSec = System.currentTimeMillis() / 1000;
+        int expireSec = (int)nowSec + 5000; // expire 5000 seconds from now
+        
         // put in cache
         assertEquals(cache.set(element), Cache.StoreResponse.STORED);
 
+        // cache expiry doesn't actually renew in real memcached
+        
         // increment
-        assertEquals("value correctly incremented", (Integer)2, cache.get_add(testKey, 1));
+        assertEquals("value correctly incremented", Long.valueOf(2), cache.get_add(testKey, 1, 0, expireSec));
+        assertEquals("expiration should be ignored on an update", NO_EXPIRE, cache.get(testKey)[0].getExpire());
+        
+        // increment
+        assertEquals("value correctly incremented", Long.valueOf(3), cache.get_add(testKey, 1, 0, NO_EXPIRE));
 
         // increment by more
-        assertEquals("value correctly incremented", (Integer)7, cache.get_add(testKey, 5));
-
+        assertEquals("value correctly incremented", Long.valueOf(7), cache.get_add(testKey, 4, 0, NO_EXPIRE));
+        
         // decrement
-        assertEquals("value correctly decremented", (Integer)2, cache.get_add(testKey, -5));
+        assertEquals("value correctly decremented", Long.valueOf(2), cache.get_add(testKey, -5, 0, NO_EXPIRE));
+        
+        Key testKey2 = new Key(ChannelBuffers.wrappedBuffer("345678".getBytes()));
+        assertEquals("default value stored", Long.valueOf(50), cache.get_add(testKey2, 0, 50, expireSec));
+        assertEquals("expiration correctly set", expireSec, cache.get(testKey2)[0].getExpire());
     }
 
 

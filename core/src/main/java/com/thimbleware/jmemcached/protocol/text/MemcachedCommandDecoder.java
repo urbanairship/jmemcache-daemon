@@ -167,6 +167,8 @@ public final class MemcachedCommandDecoder extends FrameDecoder {
                 if (numParts == 3 && parts.get(MIN_BYTES_LINE).equals(NOREPLY)) {
                     cmd.noreply = true;
                 }
+                
+                cmd.incrExpiry = 0xFFFFFFFFL; // Not setting expiry in text protocol
 
                 return cmd;
             case FLUSH_ALL:
@@ -203,9 +205,9 @@ public final class MemcachedCommandDecoder extends FrameDecoder {
 
                 // Fill in all the elements of the command
                 int size = BufferUtils.atoi(parts.get(4));
-                long expire = BufferUtils.atoi(parts.get(3)) * 1000;
+                int expireSec = BufferUtils.atoi(parts.get(3));
                 int flags = BufferUtils.atoi(parts.get(MIN_BYTES_LINE));
-                cmd.element = new LocalCacheElement(new Key(parts.get(1).slice()), flags, expire != 0 && expire < CacheElement.THIRTY_DAYS ? LocalCacheElement.Now() + expire : expire, 0L);
+                cmd.element = new LocalCacheElement(new Key(parts.get(1).slice()), flags, expireSec != 0 && expireSec < CacheElement.THIRTY_DAYS ? LocalCacheElement.Now() + expireSec : expireSec, 0L);
 
                 // look for cas and "noreply" elements
                 if (numParts > 5) {
