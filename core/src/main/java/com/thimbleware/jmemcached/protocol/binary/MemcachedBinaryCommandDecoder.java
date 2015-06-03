@@ -191,25 +191,28 @@ public class MemcachedBinaryCommandDecoder extends FrameDecoder {
                 // the remainder of the message -- that is, totalLength - (keyLength + extraLength) should be the payload
                 int size = totalBodyLength - keyLength - extraLength;
 
-                cmdMessage.element = new LocalCacheElement(new Key(keyBuffer.slice()), flags, expire != 0 && expire < CacheElement.THIRTY_DAYS ? LocalCacheElement.Now() + expire : expire, 0L);
+                cmdMessage.element = new LocalCacheElement(new Key(keyBuffer.slice()), flags, fixExpire(expire), 0L);
                 ChannelBuffer data = ChannelBuffers.buffer(size);
                 channelBuffer.readBytes(data);
                 cmdMessage.element.setData(data);
             } else if (cmdType == Op.INCR || cmdType == Op.DECR) {
-                long initialValue = extrasBuffer.readUnsignedInt();
-                long amount = extrasBuffer.readUnsignedInt();
+                long amount = extrasBuffer.readLong();
+                long initialValue = extrasBuffer.readLong();
                 long expiration = extrasBuffer.readUnsignedInt();
 
-                cmdMessage.incrAmount = (int) amount;
-                cmdMessage.incrExpiry = expiration;
+                cmdMessage.incrInitial = initialValue;
+                cmdMessage.incrAmount = amount;
+                cmdMessage.incrExpiry = fixExpire(expiration);
             } else if (cmdType == Op.GAT || cmdType == Op.GATQ || cmdType == Op.TOUCH){
         	long expiration = extrasBuffer.readUnsignedInt();
-        	
-        	cmdMessage.incrExpiry = (int) expiration;
-                cmdMessage.incrExpiry = expiration;
+        	cmdMessage.incrExpiry = fixExpire(expiration);
             }
         }
 
         return cmdMessage;
+    }
+    
+    private long fixExpire(long expire){
+	return (expire != 0) && expire < CacheElement.THIRTY_DAYS ? LocalCacheElement.Now() + expire : expire;
     }
 }

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +24,7 @@ import net.spy.memcached.CASValue;
 import net.spy.memcached.MemcachedClient;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -89,7 +91,7 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         assertTrue(future.get());
         assertEquals( "bar", _client.get( "foo" ) );
     }
-
+    
     @Test
     public void testIncrDecr() throws ExecutionException, InterruptedException {
         Future<Boolean> future = _client.set("foo", 0, "1");
@@ -99,6 +101,10 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         assertEquals( "6", _client.get( "foo" ) );
         _client.decr( "foo", 10 );
         assertEquals( "0", _client.get( "foo" ) );
+        
+        assertEquals( null, _client.get( "bar" ) );
+        long retVal = _client.incr( "bar", 5 );
+        assertEquals( -1, retVal);
     }
 
     @Test
@@ -201,17 +207,17 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
 	
 	// no expiration at first
         Future<Boolean> future = _client.set("foo", 0, "foo");
-        assertTrue(future.get());
+        assertTrue("set should be successful", future.get());
         
         // ensure it's present in the cache
-        assertEquals("foo", _client.get("foo"));
+        assertEquals("cache should contain a value for key 'foo'", "foo", _client.get("foo"));
 
-        // touch to expire in 3sec
+        // touch to expire in 3sec after it hits the server
         future = _client.touch("foo", 3);
-        assertTrue(future.get());
+        assertTrue("touch should be successful", future.get());
         
-        // sleep 3.5 sec 
-        Thread.sleep(3500);
+        // sleep 5 sec 
+        Thread.sleep(5000);
         
         // should be expired
         assertNull("cache entry should be expired", _client.get("foo"));
@@ -225,16 +231,16 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
 	
 	// no expiration at first
         Future<Boolean> future = _client.set("foo", 0, "foo");
-        assertTrue(future.get());
+        assertTrue("set should be successful", future.get());
 
-        // ensure it's present in the cache; expire in 3sec
-        assertEquals("foo", _client.getAndTouch("foo", 3).getValue());
+        // ensure it's present in the cache; expire in 3sec after it hits the server
+        assertEquals("cache should contain a value for key 'foo'", "foo", _client.getAndTouch("foo", 3).getValue());
         
-        // sleep 3.5 sec 
-        Thread.sleep(3500);
+        // sleep 5 sec 
+        Thread.sleep(5000);
         
         // should be expired
-        assertNull(_client.get("foo"));
+        assertNull("cache entry should be expired", _client.get("foo"));
     }
 
     @Test
@@ -272,6 +278,50 @@ public class SpyMemcachedIntegrationTest extends AbstractCacheTest {
         }
 
         return map;
+    }
+    
+    
+    @Test
+    public void testIncrementCounter() throws Exception {
+	
+	// uses GAT so no text protocol
+	if(this.getProtocolMode() == ProtocolMode.TEXT) return;
+	
+        String key = UUID.randomUUID().toString();
+        Long value = getCounter(key);
+        // should get back 1 as the default since it doesn't exist yet
+        Assert.assertEquals(1L, value.longValue());
+
+        value = incrementCounter(key);
+        // should get back 2 as the default since it doesn't exist yet
+        Assert.assertEquals(2L, value.longValue());
+
+        value = incrementCounter(key);
+        Assert.assertEquals(3L, value.longValue());
+
+        value = getCounter(key);
+        Assert.assertEquals(3L, value.longValue());
+    }
+    
+    int cacheTimeInS = 15 * 60; // 15 minutes
+    
+    /* This test case fails in a client project */
+    public Long incrementCounter(String key) throws Exception {
+        //try {
+            return _client.incr(key, 1, 2, cacheTimeInS);
+        //} catch (Exception e) {
+        //    return 1L;
+        //}
+    }
+
+    public Long getCounter(String key) {
+        CASValue<Object> value = _client.getAndTouch(key, cacheTimeInS);
+        // default transcoder returns the value as a string
+        try {
+            return value == null ? 1 : Long.parseLong((String) value.getValue());
+        } catch (NumberFormatException ignored) {
+            return 1L;
+        }
     }
 
 

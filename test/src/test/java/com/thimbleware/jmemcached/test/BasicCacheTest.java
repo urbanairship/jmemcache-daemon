@@ -205,24 +205,29 @@ public class BasicCacheTest extends AbstractCacheTest {
 
         
         long nowSec = System.currentTimeMillis() / 1000;
-        long expireSec = nowSec + 5000; // expire 5000 seconds from now
+        int expireSec = (int)nowSec + 5000; // expire 5000 seconds from now
         
         // put in cache
         assertEquals(cache.set(element), Cache.StoreResponse.STORED);
 
-        // increment
-        assertEquals("value correctly incremented", (Integer)2, cache.get_add(testKey, 1, NO_EXPIRE));
+        // cache expiry doesn't actually renew in real memcached
         
         // increment
-        assertEquals("value correctly incremented", (Integer)3, cache.get_add(testKey, 1, expireSec));
-        assertEquals("expiration correctly set", expireSec, cache.get(testKey)[0].getExpire());
+        assertEquals("value correctly incremented", Long.valueOf(2), cache.get_add(testKey, 1, 0, expireSec));
+        assertEquals("expiration should be ignored on an update", NO_EXPIRE, cache.get(testKey)[0].getExpire());
+        
+        // increment
+        assertEquals("value correctly incremented", Long.valueOf(3), cache.get_add(testKey, 1, 0, NO_EXPIRE));
 
         // increment by more
-        assertEquals("value correctly incremented", (Integer)7, cache.get_add(testKey, 4, NO_EXPIRE));
-        assertEquals("expiration correctly set", NO_EXPIRE, cache.get(testKey)[0].getExpire());
+        assertEquals("value correctly incremented", Long.valueOf(7), cache.get_add(testKey, 4, 0, NO_EXPIRE));
         
         // decrement
-        assertEquals("value correctly decremented", (Integer)2, cache.get_add(testKey, -5, NO_EXPIRE));
+        assertEquals("value correctly decremented", Long.valueOf(2), cache.get_add(testKey, -5, 0, NO_EXPIRE));
+        
+        Key testKey2 = new Key(ChannelBuffers.wrappedBuffer("345678".getBytes()));
+        assertEquals("default value stored", Long.valueOf(50), cache.get_add(testKey2, 0, 50, expireSec));
+        assertEquals("expiration correctly set", expireSec, cache.get(testKey2)[0].getExpire());
     }
 
 

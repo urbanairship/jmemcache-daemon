@@ -16,6 +16,9 @@
 package com.thimbleware.jmemcached;
 
 import com.thimbleware.jmemcached.storage.CacheStorage;
+import com.thimbleware.jmemcached.util.BufferUtils;
+
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
 import java.io.IOException;
@@ -162,15 +165,24 @@ public final class CacheImpl extends AbstractCache<LocalCacheElement> implements
     /**
      * @inheritDoc
      */
-    public Integer get_add(Key key, int mod, long expire) {
+    public Long get_add(Key key, long mod, long initial, long expire) {
         LocalCacheElement old = storage.get(key);
         if (old == null || isBlocked(old) || isExpired(old)) {
             getMisses.incrementAndGet();
-            return null;
+            
+            if(expire != 0xFFFFFFFFL){
+                LocalCacheElement newElement = new LocalCacheElement(key);
+                newElement.setExpire(expire);
+                newElement.setData(BufferUtils.ltoa(initial));
+                storage.put(key, newElement);
+                return initial;
+            } else {
+        	return null;
+            }
         } else {
             LocalCacheElement.IncrDecrResult result = old.add(mod);
             LocalCacheElement replacement = result.replace;
-            replacement.setExpire(expire);
+            //replacement.setExpire(expire); // memcached doesn't do this
             return storage.replace(old.getKey(), old, replacement) ? result.oldValue : null;
         }
     }

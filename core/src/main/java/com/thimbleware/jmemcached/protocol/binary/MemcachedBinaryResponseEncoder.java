@@ -169,7 +169,7 @@ public class MemcachedBinaryResponseEncoder<CACHE_ELEMENT extends CacheElement> 
             }
         } else if (command.cmd.op == Op.INCR || command.cmd.op == Op.DECR) {
             valueBuffer = ChannelBuffers.buffer(ByteOrder.BIG_ENDIAN, 8);
-            valueBuffer.writeLong(command.incrDecrResponse);
+            valueBuffer.writeLong(command.incrDecrResponse != null ? command.incrDecrResponse : -1L);
         }
 
         long casUnique = 0;

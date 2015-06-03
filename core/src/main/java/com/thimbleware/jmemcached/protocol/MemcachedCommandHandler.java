@@ -265,12 +265,12 @@ public final class MemcachedCommandHandler<CACHE_ELEMENT extends CacheElement> e
     }
 
     protected void handleDecr(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
-        Integer incrDecrResp = cache.get_add(command.keys.get(0), -1 * command.incrAmount, command.incrExpiry);
+        Long incrDecrResp = cache.get_add(command.keys.get(0), -1 * command.incrAmount, command.incrInitial, command.incrExpiry);
         Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withIncrDecrResponse(incrDecrResp), channel.getRemoteAddress());
     }
 
     protected void handleIncr(ChannelHandlerContext channelHandlerContext, CommandMessage<CACHE_ELEMENT> command, Channel channel) {
-        Integer incrDecrResp = cache.get_add(command.keys.get(0), command.incrAmount, command.incrExpiry); // TODO support default value 
+        Long incrDecrResp = cache.get_add(command.keys.get(0), command.incrAmount, command.incrInitial, command.incrExpiry);  
         Channels.fireMessageReceived(channelHandlerContext, new ResponseMessage(command).withIncrDecrResponse(incrDecrResp), channel.getRemoteAddress());
     }
 

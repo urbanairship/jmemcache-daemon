@@ -87,7 +87,7 @@ public interface Cache<CACHE_ELEMENT extends CacheElement> {
      * @param mod the amount to add to the value
      * @return the message response
      */
-    Integer get_add(Key key, int mod, long expire);
+    Long get_add(Key key, long mod, long initial, long expiry);
 
     /**
      * Get element(s) from the cache
